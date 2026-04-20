@@ -59,13 +59,12 @@
     <div class="row justify-content-center">
       <div class="col-md-10">
         <div class="card mb-4">
-          <div class="card-header bg-white text-center py-3 border-bottom" style="border-radius: 15px 15px 0 0;">
+          <div class="card-header bg-white text-center py-3 border-bottom">
             <h5 class="mb-0 fw-bold text-primary">Form Presensi Harian</h5>
           </div>
 
           <div class="card-body p-4">
             <form id="presensiForm">
-              
               <div class="row mb-4">
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-bold label-section">Nama Pegawai</label>
@@ -122,7 +121,7 @@
               </div>
 
               <div class="mb-4 gps-indicator">
-                📍 <span id="statusGPS">Verifikasi lokasi dilakukan otomatis saat menekan tombol Kirim</span>
+                📍 <span id="statusGPS">Verifikasi lokasi hanya wajib untuk status Hadir</span>
               </div>
               
               <button type="submit" id="submitBtn" class="btn btn-primary w-100 shadow-lg mb-4">KIRIM PRESENSI</button>
@@ -130,22 +129,12 @@
             
             <div class="monitoring-box mt-4">
               <h6 class="fw-bold text-center mb-3 text-secondary" style="letter-spacing: 1px;">📍 STATUS PEGAWAI HARI INI</h6>
-              
-              <div class="d-flex flex-wrap justify-content-center gap-3 mb-4 small fw-bold text-muted">
-                <span><span class="dot dot-hadir"></span> Di Sekolah</span>
-                <span><span class="dot dot-izin"></span> Izin</span>
-                <span><span class="dot dot-sakit"></span> Sakit</span>
-                <span><span class="dot dot-pulang"></span> Sudah Pulang</span>
-              </div>
-              
               <div id="liveStatusContainer" class="d-flex flex-wrap justify-content-center gap-2">
-                <div class="spinner-border spinner-border-sm text-primary"></div> <span class="small text-muted ms-2">Memuat data hari ini...</span>
+                <div class="spinner-border spinner-border-sm text-primary"></div>
               </div>
             </div>
-
           </div>
         </div>
-        
         <div class="text-center mt-2 text-muted pb-4">
           <small>&copy; 2026 UPTD SMP Negeri 2 Sengkang | IT Developer: Muh Ikhlas Abadi</small>
         </div>
@@ -238,8 +227,7 @@
   </div>
 
   <script>
-    // 🔥 PASTE URL WEB APP ANDA DI DALAM TANDA KUTIP DI BAWAH INI 🔥
-    const API_URL = "https://script.google.com/macros/s/AKfycbw5uCdHVk-hx510nnFCtIj_KDCx2T306x4Pk-qycx56XAOzlnjb-KR87eHWEO0jQtwhYQ/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbyqjyqqjTDXXabcQiJIS1SjJmSLKN4jsbQpX85Qpzp0vVIntjLw5spxc9teLuO5waHOIw/exec"; 
 
     function callAPI(actionData) {
       return fetch(API_URL, {
@@ -255,29 +243,13 @@
     
     let daftarPegawaiGlobal = [];
     let rekapDataGlobal = []; 
-
+    
     function hitungJarakMeters(lat1, lon1, lat2, lon2) {
       const R = 6371e3; const radLat1 = lat1 * Math.PI / 180; const radLat2 = lat2 * Math.PI / 180;
       const deltaLat = (lat2 - lat1) * Math.PI / 180; const deltaLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) + Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c; 
-    }
-
-    function bunyi(tipe) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return; 
-      const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gainNode = ctx.createGain();
-      osc.connect(gainNode); gainNode.connect(ctx.destination);
-      if (tipe === 'sukses') {
-        osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); 
-        gainNode.gain.setValueAtTime(0.5, ctx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
-      } else if (tipe === 'gagal') {
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime);
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
-      }
     }
 
     function updateWaktu() {
@@ -292,17 +264,139 @@
       callAPI({ action: "getDaftarPegawai" }).then(data => {
         daftarPegawaiGlobal = data; 
         let select = document.getElementById('nama');
-        select.innerHTML = '<option value="" disabled selected>-- Silakan Pilih Nama Anda --</option>';
+        select.innerHTML = '<option value="" disabled selected>-- Pilih Nama --</option>';
         data.forEach(p => { if(p[0]) select.add(new Option(p[0], p[0])); });
         renderTabelAdmin();
-      }).catch(err => console.log("Gagal memuat API", err));
+      });
     }
 
     function autoFillJabatan() {
       const namaTerpilih = document.getElementById('nama').value;
       const pegawai = daftarPegawaiGlobal.find(p => p[0] === namaTerpilih);
-      if (pegawai) document.getElementById('jabatan').value = pegawai[1] || 'Tidak diketahui';
+      if (pegawai) document.getElementById('jabatan').value = pegawai[1];
     }
+
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasElement');
+    const preview = document.getElementById('photoPreview');
+    const fotoDataInput = document.getElementById('fotoData');
+    const btnBuka = document.getElementById('btnBukaKamera');
+    const btnAmbil = document.getElementById('btnAmbilFoto');
+    const btnUlang = document.getElementById('btnUlangiFoto');
+    let streamMedia = null;
+
+    btnBuka.addEventListener('click', async () => {
+      try {
+        streamMedia = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = streamMedia; video.style.display = 'block'; preview.style.display = 'none';
+        btnBuka.style.display = 'none'; btnAmbil.style.display = 'inline-block'; btnUlang.style.display = 'none';
+      } catch (err) { Swal.fire('Kamera Gagal', 'Izinkan akses kamera.', 'error'); }
+    });
+
+    btnAmbil.addEventListener('click', () => {
+      const MAX_WIDTH = 640;
+      let width = video.videoWidth; let height = video.videoHeight;
+      if (width > MAX_WIDTH) { height = Math.floor(height * (MAX_WIDTH / width)); width = MAX_WIDTH; }
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      preview.src = dataUrl; fotoDataInput.value = dataUrl; 
+      video.style.display = 'none'; preview.style.display = 'block';
+      btnAmbil.style.display = 'none'; btnUlang.style.display = 'inline-block';
+    });
+
+    btnUlang.addEventListener('click', () => {
+      fotoDataInput.value = ''; preview.style.display = 'none'; video.style.display = 'block';
+      btnUlang.style.display = 'none'; btnAmbil.style.display = 'inline-block';
+    });
+    
+    function stopCamera() {
+      if (streamMedia) { streamMedia.getTracks().forEach(track => track.stop()); video.style.display = 'none'; preview.style.display = 'none'; btnBuka.style.display = 'inline-block'; btnAmbil.style.display = 'none'; btnUlang.style.display = 'none'; fotoDataInput.value = ''; }
+    }
+
+    // ==========================================
+    // LOGIKA PENGIRIMAN DATA (Sakit/Izin Bebas + Wajib Foto)
+    // ==========================================
+    document.getElementById('presensiForm').onsubmit = function(e) {
+      e.preventDefault(); 
+      const statusValue = document.querySelector('input[name="status"]:checked').value;
+      const inputNama = document.getElementById('nama').value;
+      const inputJabatan = document.getElementById('jabatan').value;
+      const jenisValue = document.querySelector('input[name="jenisPresensi"]:checked').value;
+      const rawFotoData = fotoDataInput.value;
+
+      if (!inputNama) return Swal.fire('Peringatan', 'Pilih nama Anda!', 'warning');
+
+      // WAJIB FOTO UNTUK SEMUA STATUS
+      if (!rawFotoData) {
+        if (statusValue === "Hadir") return Swal.fire('Foto Wajib', 'Ambil foto bukti kehadiran di sekolah!', 'warning');
+        else if (statusValue === "Sakit") return Swal.fire('Foto Wajib', 'Ambil foto/surat bukti sedang sakit!', 'warning');
+        else return Swal.fire('Foto Wajib', 'Ambil foto/surat bukti sedang izin!', 'warning');
+      }
+
+      // BYPASS WAKTU & GPS UNTUK STATUS SAKIT / IZIN
+      if (statusValue === "Izin" || statusValue === "Sakit") {
+        prosesKirimKeServer("Status: " + statusValue);
+        return;
+      }
+
+      // VALIDASI WAKTU HANYA UNTUK STATUS HADIR
+      const formatWITA = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+      const [jam, menit] = formatWITA.split(':').map(Number);
+
+      if (jenisValue === "Kedatangan" && (jam > 8 || (jam === 8 && menit > 0))) {
+        return Swal.fire('Terlambat', 'Batas kedatangan adalah 08:00 WITA.', 'error');
+      }
+      if (jenisValue === "Kepulangan" && jam < 11) {
+        return Swal.fire('Belum Waktunya', 'Absen pulang minimal pukul 11:00 WITA.', 'error');
+      }
+
+      // VALIDASI GPS HANYA UNTUK STATUS HADIR
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.innerHTML = `Verifikasi GPS...`;
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const jarak = Math.round(hitungJarakMeters(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LON));
+          if (jarak <= MAX_JARAK_METER) { prosesKirimKeServer(`[GPS OK: ${jarak}m]`); } 
+          else {
+            Swal.fire('Luar Jangkauan', `Jarak Anda ${jarak}m dari sekolah.`, 'error');
+            resetTombol();
+          }
+        },
+        function() { Swal.fire('GPS Gagal', 'Aktifkan GPS Anda.', 'error'); resetTombol(); },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+
+      function prosesKirimKeServer(infoLokasi) {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true; btn.innerHTML = `Mengirim Data...`;
+        
+        let catatanAsli = document.getElementById('catatan').value;
+        const data = { 
+          action: "submitPresensi", 
+          data: { 
+            nama: inputNama, jabatan: inputJabatan, jenisPresensi: jenisValue, status: statusValue, 
+            tanggal: new Date().toISOString().split('T')[0], 
+            catatan: infoLokasi + (catatanAsli ? " | " + catatanAsli : ""),
+            mimeType: "image/jpeg", 
+            fileData: rawFotoData.split(',')[1], 
+            fileName: "Foto_" + statusValue + "_" + inputNama.replace(/\s+/g, '_') + "_" + new Date().getTime() + ".jpg" 
+          } 
+        };
+        
+        callAPI(data).then((response) => {
+          if(response === "Sukses") {
+             Swal.fire({ title: 'Transmisi Berhasil!', icon: 'success', timer: 3000, showConfirmButton: false });
+             document.getElementById('presensiForm').reset();
+             document.getElementById('masuk').checked = true;
+             stopCamera(); loadLiveStatus(); 
+          } else { Swal.fire('Error Sistem', response, 'error'); }
+          resetTombol();
+        }).catch(err => { Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); resetTombol(); });
+      }
+      function resetTombol() { btn.disabled = false; btn.innerText = "KIRIM PRESENSI"; }
+    };
 
     function loadLiveStatus() {
       const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit' };
@@ -314,7 +408,7 @@
         const container = document.getElementById('liveStatusContainer'); let html = '';
         const names = Object.keys(latestStatus);
         
-        if(names.length === 0) { container.innerHTML = '<span class="small text-muted">Belum ada pegawai yang presensi hari ini.</span>'; return; }
+        if(names.length === 0) { container.innerHTML = '<span class="small text-muted">Belum ada data hari ini.</span>'; return; }
 
         names.forEach(nama => {
            let info = latestStatus[nama]; let dotClass = '';
@@ -326,13 +420,13 @@
       }); 
     }
 
-    const ADMIN_PIN = "122333";
+    const ADMIN_PIN = "123456";
     function bukaPanelAdmin() {
       Swal.fire({ title: 'Otorisasi Admin', input: 'password', inputPlaceholder: 'Masukkan PIN Admin...', inputAttributes: { autocapitalize: 'off', autocorrect: 'off' }, showCancelButton: true, confirmButtonText: 'Masuk', confirmButtonColor: '#004a99', cancelButtonText: 'Batal'
       }).then((result) => {
         if (result.isConfirmed) {
           if (result.value === ADMIN_PIN) { new bootstrap.Modal(document.getElementById('adminModal')).show(); } 
-          else { bunyi('gagal'); Swal.fire('Akses Ditolak', 'PIN yang Anda masukkan salah.', 'error'); }
+          else { Swal.fire('Akses Ditolak', 'PIN salah.', 'error'); }
         }
       });
     }
@@ -352,12 +446,11 @@
       const nama = document.getElementById('adminNamaBaru').value.trim(); const jabatan = document.getElementById('adminJabatanBaru').value;
       if (!nama) return Swal.fire('Peringatan', 'Nama Pegawai tidak boleh kosong!', 'warning');
       const btn = document.getElementById('btnTambahPegawai'); btn.disabled = true; btn.innerText = "Loading...";
-      
       callAPI({ action: "tambahPegawai", nama: nama, jabatan: jabatan }).then((response) => {
         if (response === "Sukses") {
           Swal.fire({ icon: 'success', title: 'Berhasil', text: `${nama} ditambahkan.`, timer: 2000, showConfirmButton: false });
           document.getElementById('adminNamaBaru').value = ''; memuatDataPegawai(); 
-        } else { bunyi('gagal'); Swal.fire('Gagal', response, 'error'); }
+        } else { Swal.fire('Gagal', response, 'error'); }
         btn.disabled = false; btn.innerText = "Simpan Data";
       });
     }
@@ -378,11 +471,11 @@
 
     function loadRekap() {
       const m = document.getElementById('tglMulai').value; const s = document.getElementById('tglSelesai').value;
-      if(!m || !s) { bunyi('gagal'); return Swal.fire({ icon: 'info', title: 'Pilih Tanggal', text: 'Tentukan rentang tanggal pencarian.', confirmButtonColor: '#004a99' }); }
+      if(!m || !s) { return Swal.fire({ icon: 'info', title: 'Pilih Tanggal', text: 'Tentukan rentang tanggal pencarian.', confirmButtonColor: '#004a99' }); }
 
       const btn = document.getElementById('btnCariRekap'); const btnExcel = document.getElementById('btnDownloadExcel');
       btn.disabled = true; btn.innerText = "MENCARI..."; btnExcel.disabled = true; 
-      const tbody = document.getElementById('hasilRekap'); tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span> Menarik data dari server...</td></tr>';
+      const tbody = document.getElementById('hasilRekap'); tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span> Menarik data...</td></tr>';
       
       callAPI({ action: "getRekapan", mulai: m, selesai: s }).then(data => {
         rekapDataGlobal = data; let html = '';
@@ -393,13 +486,13 @@
           let teksCatatan = r[7] ? `<div class="teks-catatan" title="${r[7]}">${r[7]}</div>` : `<span class="text-muted">-</span>`;
           html += `<tr><td class="ps-3"><small>${r[3].split ? r[3].split('T')[0] : r[3]}</small></td><td class="fw-bold text-primary">${r[1]}</td><td><small class="text-muted">${r[4] || '-'}</small></td><td><span class="badge ${badgeJenis}">${r[5] || '-'}</span></td><td><span class="badge ${badgeStatus}">${r[2]}</span></td><td><small>${teksCatatan}</small></td><td class="text-center">${linkBukti}</td></tr>`;
         });
-        tbody.innerHTML = html || '<tr><td colspan="7" class="text-center py-4 text-danger fw-bold">Data tidak ditemukan pada periode tersebut.</td></tr>';
+        tbody.innerHTML = html || '<tr><td colspan="7" class="text-center py-4 text-danger fw-bold">Data tidak ditemukan.</td></tr>';
         btn.disabled = false; btn.innerText = "CARI DATA"; if(data.length > 0) btnExcel.disabled = false;
       });
     }
 
     function downloadExcel() {
-      if (rekapDataGlobal.length === 0) { bunyi('gagal'); return Swal.fire('Data Kosong', 'Tidak ada data untuk diunduh.', 'warning'); }
+      if (rekapDataGlobal.length === 0) { return Swal.fire('Data Kosong', 'Tidak ada data untuk diunduh.', 'warning'); }
       let dataExcel = [ ["Tanggal", "Nama Pegawai", "Jabatan", "Jenis Presensi", "Status Kehadiran", "Catatan/Info GPS", "Link Bukti Foto"] ];
       rekapDataGlobal.forEach(r => {
         let tglStr = r[3].split ? r[3].split('T')[0] : r[3]; 
@@ -409,98 +502,9 @@
       worksheet['!cols'] = [ {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 40}, {wch: 50} ];
       XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Presensi");
       let m = document.getElementById('tglMulai').value; let s = document.getElementById('tglSelesai').value;
-      XLSX.writeFile(workbook, `Rekap_SMPN2_${m}_sd_${s}.xlsx`); bunyi('sukses'); 
+      XLSX.writeFile(workbook, `Rekap_SMPN2_${m}_sd_${s}.xlsx`);
     }
-
-    const video = document.getElementById('videoElement'); const canvas = document.getElementById('canvasElement'); const preview = document.getElementById('photoPreview'); const fotoDataInput = document.getElementById('fotoData'); const btnBuka = document.getElementById('btnBukaKamera'); const btnAmbil = document.getElementById('btnAmbilFoto'); const btnUlang = document.getElementById('btnUlangiFoto'); let streamMedia = null;
-
-    btnBuka.addEventListener('click', async () => {
-      try {
-        streamMedia = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = streamMedia; video.style.display = 'block'; preview.style.display = 'none';
-        btnBuka.style.display = 'none'; btnAmbil.style.display = 'inline-block'; btnUlang.style.display = 'none';
-      } catch (err) { bunyi('gagal'); Swal.fire({ icon: 'error', title: 'Kamera Gagal', text: 'Izinkan akses kamera di browser Anda.', confirmButtonColor: '#004a99' }); }
-    });
-
-    // ==========================================
-    // ALGORITMA KOMPRESI GAMBAR BARU 
-    // ==========================================
-    btnAmbil.addEventListener('click', () => {
-      const MAX_WIDTH = 640; // Batas lebar maksimal foto agar ringan
-      let width = video.videoWidth;
-      let height = video.videoHeight;
-
-      // Kalkulasi rasio aspek jika dimensi lebih besar dari batas
-      if (width > MAX_WIDTH) {
-        height = Math.floor(height * (MAX_WIDTH / width));
-        width = MAX_WIDTH;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Menggambar frame video ke canvas dengan ukuran yang sudah disesuaikan
-      canvas.getContext('2d').drawImage(video, 0, 0, width, height);
-      
-      // Mengubah gambar ke base64 dengan kompresi kualitas JPEG 60% (0.6)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-      
-      preview.src = dataUrl; fotoDataInput.value = dataUrl; 
-      video.style.display = 'none'; preview.style.display = 'block'; btnAmbil.style.display = 'none'; btnUlang.style.display = 'inline-block';
-    });
-
-    btnUlang.addEventListener('click', () => {
-      fotoDataInput.value = ''; preview.style.display = 'none'; video.style.display = 'block'; btnUlang.style.display = 'none'; btnAmbil.style.display = 'inline-block';
-    });
-
-    function stopCamera() {
-      if (streamMedia) { streamMedia.getTracks().forEach(track => track.stop()); video.style.display = 'none'; preview.style.display = 'none'; btnBuka.style.display = 'inline-block'; btnAmbil.style.display = 'none'; btnUlang.style.display = 'none'; fotoDataInput.value = ''; }
-    }
-
-    document.getElementById('presensiForm').onsubmit = function(e) {
-      e.preventDefault(); 
-      const inputNama = document.getElementById('nama').value; const inputJabatan = document.getElementById('jabatan').value; const radioJenis = document.querySelector('input[name="jenisPresensi"]:checked'); const radioStatus = document.querySelector('input[name="status"]:checked'); const rawFotoData = fotoDataInput.value;
-
-      if (!inputNama || !inputJabatan || !radioJenis || !radioStatus || !rawFotoData) { bunyi('gagal'); return Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap!', text: 'Lengkapi semua kolom dan ambil bukti foto!', confirmButtonColor: '#ffc107' }); }
-
-      const jenisValue = radioJenis.value; const statusValue = radioStatus.value;
-      const formatWITA = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-      const [jam, menit] = formatWITA.split(':').map(Number);
-
-      if (jenisValue === "Kedatangan" && (jam > 8 || (jam === 8 && menit > 0))) { bunyi('gagal'); return Swal.fire({ title: 'Akses Ditolak!', text: 'Batas kedatangan adalah 08:00 WITA.', icon: 'error', confirmButtonColor: '#d33' }); }
-      if (jenisValue === "Kepulangan" && jam < 11) { bunyi('gagal'); return Swal.fire({ title: 'Akses Ditolak!', text: 'Absen pulang minimal pukul 11:00 WITA.', icon: 'error', confirmButtonColor: '#d33' }); }
-
-      if (statusValue === "Izin" || statusValue === "Sakit") { prosesKirimKeServer("Status: " + statusValue); return; }
-
-      const btn = document.getElementById('submitBtn'); btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Verifikasi Satelit...`;
-
-      navigator.geolocation.getCurrentPosition(
-        function(position) {
-          const jarak = Math.round(hitungJarakMeters(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LON));
-          if (jarak <= MAX_JARAK_METER) { prosesKirimKeServer(`[GPS OK: ${jarak}m]`); } 
-          else { bunyi('gagal'); Swal.fire({ title: 'Di Luar Jangkauan!', text: `Jarak Anda ${jarak}m dari sekolah. Maksimal ${MAX_JARAK_METER}m.`, icon: 'error', confirmButtonColor: '#d33' }); resetTombol(); }
-        },
-        function() { bunyi('gagal'); Swal.fire({ icon: 'error', title: 'Sinyal GPS Gagal', text: 'Pastikan Lokasi (GPS) HP Anda aktif dan beri izin pada browser.', confirmButtonColor: '#d33' }); resetTombol(); }, { enableHighAccuracy: true, timeout: 10000 }
-      );
-
-      function prosesKirimKeServer(infoLokasi) {
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Transmisi Data...`;
-        let catatanAsli = document.getElementById('catatan').value;
-        const data = { action: "submitPresensi", data: { nama: inputNama, jabatan: inputJabatan, jenisPresensi: jenisValue, status: statusValue, tanggal: new Date().toISOString().split('T')[0], catatan: infoLokasi + (catatanAsli ? " | " + catatanAsli : ""), mimeType: "image/jpeg", fileData: rawFotoData.split(',')[1], fileName: "Foto_" + statusValue + "_" + inputNama.replace(/\s+/g, '_') + "_" + new Date().getTime() + ".jpg" } };
-        
-        callAPI(data).then((response) => {
-          if(response === "Sukses") {
-             bunyi('sukses'); Swal.fire({ title: 'Transmisi Berhasil!', icon: 'success', timer: 3000, showConfirmButton: false });
-             document.getElementById('presensiForm').reset(); document.getElementById('masuk').checked = true;
-             stopCamera(); loadLiveStatus(); 
-          } else { bunyi('gagal'); Swal.fire({ title: 'Error Sistem!', text: response, icon: 'error', confirmButtonColor: '#d33' }); }
-          resetTombol();
-        }).catch(err => { bunyi('gagal'); Swal.fire({ title: 'Koneksi Terputus!', text: "Gagal menyambung ke server API.", icon: 'error', confirmButtonColor: '#d33' }); resetTombol(); });
-      }
-      function resetTombol() { btn.disabled = false; btn.innerText = "KIRIM PRESENSI"; }
-    };
   </script>
-  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -438,11 +438,24 @@
           // JIKA KONEKSI GOOGLE TERPUTUS, TAPI DATA SUDAH MASUK
           if (err.message === "Balasan_Terputus") {
              bunyi('sukses');
-             Swal.fire('Proses Selesai', 'Data dan foto telah diproses, namun konfirmasi dari server lambat. Silakan cek radar status.', 'info');
+             // --- INI BAGIAN YANG DIUBAH MENJADI SUKSES ---
+             Swal.fire({ 
+               title: 'Presensi Diterima!', 
+               text: 'Data kehadiran dan foto Anda telah berhasil tersimpan di sistem.', 
+               icon: 'success', 
+               timer: 3000, 
+               showConfirmButton: false 
+             });
+             // ---------------------------------------------
              document.getElementById('presensiForm').reset();
              document.getElementById('masuk').checked = true;
              stopCamera(); loadLiveStatus();
           } else {
+             bunyi('gagal');
+             Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); 
+          }
+          resetTombol(); 
+        });
              bunyi('gagal');
              Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); 
           }

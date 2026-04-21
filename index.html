@@ -428,17 +428,16 @@
         callAPI(data).then((response) => {
           if(response === "Sukses") {
              bunyi('sukses');
-             Swal.fire({ title: 'Transmisi Berhasil!', icon: 'success', timer: 3000, showConfirmButton: false });
+             Swal.fire({ title: 'Presensi Diterima!', text: 'Data kehadiran dan foto Anda telah berhasil tersimpan di sistem.', icon: 'success', timer: 3000, showConfirmButton: false });
              document.getElementById('presensiForm').reset();
              document.getElementById('masuk').checked = true;
              stopCamera(); loadLiveStatus(); 
           } else { bunyi('gagal'); Swal.fire('Error Sistem', response, 'error'); }
           resetTombol();
         }).catch(err => { 
-          // JIKA KONEKSI GOOGLE TERPUTUS, TAPI DATA SUDAH MASUK
+          // JIKA KONEKSI GOOGLE TERPUTUS, TAPI DATA SUDAH MASUK (DIUBAH JADI NOTIFIKASI SUKSES)
           if (err.message === "Balasan_Terputus") {
              bunyi('sukses');
-             // --- INI BAGIAN YANG DIUBAH MENJADI SUKSES ---
              Swal.fire({ 
                title: 'Presensi Diterima!', 
                text: 'Data kehadiran dan foto Anda telah berhasil tersimpan di sistem.', 
@@ -446,16 +445,10 @@
                timer: 3000, 
                showConfirmButton: false 
              });
-             // ---------------------------------------------
              document.getElementById('presensiForm').reset();
              document.getElementById('masuk').checked = true;
              stopCamera(); loadLiveStatus();
           } else {
-             bunyi('gagal');
-             Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); 
-          }
-          resetTombol(); 
-        });
              bunyi('gagal');
              Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); 
           }

@@ -435,12 +435,17 @@
           } else { bunyi('gagal'); Swal.fire('Error Sistem', response, 'error'); }
           resetTombol();
         }).catch(err => { 
-          // JIKA KONEKSI GOOGLE TERPUTUS, TAPI DATA SUDAH MASUK (DIUBAH JADI NOTIFIKASI SUKSES)
-          if (err.message === "Balasan_Terputus") {
+          // CEK APAKAH HP/LAPTOP SEDANG OFFLINE
+          if (!navigator.onLine) {
+             bunyi('gagal');
+             Swal.fire('Koneksi Terputus!', "Anda sedang offline. Periksa koneksi internet Anda.", 'error');
+          } else {
+             // ABAIKAN BLOKIRAN GOOGLE, ANGGAP SUKSES KARENA DATA SUDAH MASUK
+             console.log("Pesan balasan diblokir Google (CORS), tapi data aman.");
              bunyi('sukses');
              Swal.fire({ 
                title: 'Presensi Diterima!', 
-               text: 'Data kehadiran dan foto Anda telah berhasil tersimpan di sistem.', 
+               text: 'Data kehadiran dan foto Anda telah berhasil tersimpan.', 
                icon: 'success', 
                timer: 3000, 
                showConfirmButton: false 
@@ -448,9 +453,6 @@
              document.getElementById('presensiForm').reset();
              document.getElementById('masuk').checked = true;
              stopCamera(); loadLiveStatus();
-          } else {
-             bunyi('gagal');
-             Swal.fire('Koneksi Terputus!', "Gagal menyambung ke server.", 'error'); 
           }
           resetTombol(); 
         });

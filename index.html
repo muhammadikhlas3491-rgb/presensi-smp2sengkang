@@ -532,16 +532,74 @@
 
     function downloadExcel() {
       if (rekapDataGlobal.length === 0) { bunyi('gagal'); return Swal.fire('Data Kosong', 'Tidak ada data untuk diunduh.', 'warning'); }
-      let dataExcel = [ ["Tanggal", "Nama Pegawai", "Jabatan", "Jenis Presensi", "Status Kehadiran", "Catatan/Info GPS", "Link Bukti Foto"] ];
+      
+      // ====================================================
+      // 1. SIAPKAN DATA DETAIL (RAW LOG)
+      // ====================================================
+      let dataDetail = [ ["Tanggal", "Nama Pegawai", "Jabatan", "Jenis Presensi", "Status Kehadiran", "Catatan/Info GPS", "Link Bukti Foto"] ];
+      let uniqueDates = new Set(); // Untuk menghitung total hari kerja aktif
+
       rekapDataGlobal.forEach(r => {
         let tglStr = r[3].split ? r[3].split('T')[0] : r[3]; 
-        dataExcel.push([ tglStr, r[1], r[4] || '-', r[5] || '-', r[2], r[7] || '-', r[6] || '-' ]);
+        uniqueDates.add(tglStr); // Mendata tanggal berapa saja sekolah aktif
+        dataDetail.push([ tglStr, r[1], r[4] || '-', r[5] || '-', r[2], r[7] || '-', r[6] || '-' ]);
       });
-      let workbook = XLSX.utils.book_new(); let worksheet = XLSX.utils.aoa_to_sheet(dataExcel);
-      worksheet['!cols'] = [ {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 40}, {wch: 50} ];
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Presensi");
+
+      // ====================================================
+      // 2. ALGORITMA PERHITUNGAN AKUMULASI (REKAP TOTAL)
+      // ====================================================
+      let summaryMap = {};
+      
+      // Masukkan semua pegawai terdaftar (agar yang tidak pernah absen tetap muncul dengan nilai 0)
+      daftarPegawaiGlobal.forEach(p => {
+        if(p[0]) summaryMap[p[0]] = { jabatan: p[1] || '-', Hadir: 0, Sakit: 0, Izin: 0, dates: new Set() };
+      });
+
+      // Mulai menghitung dari data rekap
+      rekapDataGlobal.forEach(r => {
+        let nama = r[1]; let status = r[2]; let tgl = r[3].split ? r[3].split('T')[0] : r[3];
+        if (!summaryMap[nama]) summaryMap[nama] = { jabatan: r[4] || '-', Hadir: 0, Sakit: 0, Izin: 0, dates: new Set() };
+        
+        // Mencegah hitungan ganda jika absen datang dan pulang di hari yang sama
+        if (!summaryMap[nama].dates.has(tgl)) {
+           summaryMap[nama].dates.add(tgl);
+           if (status === 'Hadir') summaryMap[nama].Hadir++;
+           else if (status === 'Sakit') summaryMap[nama].Sakit++;
+           else if (status === 'Izin') summaryMap[nama].Izin++;
+        }
+      });
+
+      let totalHariKerja = uniqueDates.size;
+      let dataSummary = [ ["Nama Pegawai", "Jabatan", "Hadir", "Sakit", "Izin", "Tanpa Keterangan (Alpa)"] ];
+
+      // Susun hasil perhitungan ke dalam baris Excel
+      Object.keys(summaryMap).forEach(nama => {
+        let s = summaryMap[nama];
+        let totalHadirSakitIzin = s.Hadir + s.Sakit + s.Izin;
+        let tanpaKeterangan = totalHariKerja - totalHadirSakitIzin;
+        if (tanpaKeterangan < 0) tanpaKeterangan = 0; // Failsafe pengaman
+        
+        dataSummary.push([ nama, s.jabatan, s.Hadir, s.Sakit, s.Izin, tanpaKeterangan ]);
+      });
+
+      // ====================================================
+      // 3. PROSES PEMBUATAN FILE EXCEL (2 SHEET)
+      // ====================================================
+      let workbook = XLSX.utils.book_new(); 
+      
+      // Buat Sheet 1 (Taruh di urutan pertama agar langsung terlihat)
+      let wsSummary = XLSX.utils.aoa_to_sheet(dataSummary);
+      wsSummary['!cols'] = [ {wch: 25}, {wch: 20}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 25} ];
+      XLSX.utils.book_append_sheet(workbook, wsSummary, "Rekap Akumulasi");
+
+      // Buat Sheet 2
+      let wsDetail = XLSX.utils.aoa_to_sheet(dataDetail);
+      wsDetail['!cols'] = [ {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 40}, {wch: 50} ];
+      XLSX.utils.book_append_sheet(workbook, wsDetail, "Log Detail");
+
+      // Download file
       let m = document.getElementById('tglMulai').value; let s = document.getElementById('tglSelesai').value;
-      XLSX.writeFile(workbook, `Rekap_SMPN2_${m}_sd_${s}.xlsx`); bunyi('sukses');
+      XLSX.writeFile(workbook, `Rekap_Total_SMPN2_${m}_sd_${s}.xlsx`); bunyi('sukses');
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

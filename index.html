@@ -534,23 +534,32 @@
       if (rekapDataGlobal.length === 0) { bunyi('gagal'); return Swal.fire('Data Kosong', 'Tidak ada data untuk diunduh.', 'warning'); }
       
       // ====================================================
-      // 1. SIAPKAN DATA DETAIL (RAW LOG)
+      // 1. SIAPKAN DATA DETAIL (MENCATAT SEMUA HARI TERMASUK MINGGU)
       // ====================================================
       let dataDetail = [ ["Tanggal", "Nama Pegawai", "Jabatan", "Jenis Presensi", "Status Kehadiran", "Catatan/Info GPS", "Link Bukti Foto"] ];
-      let uniqueDates = new Set(); // Untuk menghitung total hari kerja aktif
+      let uniqueDates = new Set(); // Hanya akan menyimpan hari Senin - Sabtu
 
       rekapDataGlobal.forEach(r => {
         let tglStr = r[3].split ? r[3].split('T')[0] : r[3]; 
-        uniqueDates.add(tglStr); // Mendata tanggal berapa saja sekolah aktif
+        
+        // Cek apakah tanggal tersebut adalah Hari Minggu (0 = Minggu)
+        let isMinggu = new Date(tglStr).getDay() === 0;
+
+        // Log mentah tetap menyimpan semua riwayat
         dataDetail.push([ tglStr, r[1], r[4] || '-', r[5] || '-', r[2], r[7] || '-', r[6] || '-' ]);
+
+        // Hanya masukkan ke daftar Hari Efektif jika BUKAN hari Minggu
+        if (!isMinggu) {
+           uniqueDates.add(tglStr); 
+        }
       });
 
       // ====================================================
-      // 2. ALGORITMA PERHITUNGAN AKUMULASI (REKAP TOTAL)
+      // 2. ALGORITMA PERHITUNGAN AKUMULASI (MENGABAIKAN MINGGU)
       // ====================================================
       let summaryMap = {};
       
-      // Masukkan semua pegawai terdaftar (agar yang tidak pernah absen tetap muncul dengan nilai 0)
+      // Masukkan semua pegawai terdaftar
       daftarPegawaiGlobal.forEach(p => {
         if(p[0]) summaryMap[p[0]] = { jabatan: p[1] || '-', Hadir: 0, Sakit: 0, Izin: 0, dates: new Set() };
       });
@@ -558,14 +567,19 @@
       // Mulai menghitung dari data rekap
       rekapDataGlobal.forEach(r => {
         let nama = r[1]; let status = r[2]; let tgl = r[3].split ? r[3].split('T')[0] : r[3];
-        if (!summaryMap[nama]) summaryMap[nama] = { jabatan: r[4] || '-', Hadir: 0, Sakit: 0, Izin: 0, dates: new Set() };
-        
-        // Mencegah hitungan ganda jika absen datang dan pulang di hari yang sama
-        if (!summaryMap[nama].dates.has(tgl)) {
-           summaryMap[nama].dates.add(tgl);
-           if (status === 'Hadir') summaryMap[nama].Hadir++;
-           else if (status === 'Sakit') summaryMap[nama].Sakit++;
-           else if (status === 'Izin') summaryMap[nama].Izin++;
+        let isMinggu = new Date(tgl).getDay() === 0;
+
+        // EKSEKUSI HANYA JIKA BUKAN HARI MINGGU
+        if (!isMinggu) {
+            if (!summaryMap[nama]) summaryMap[nama] = { jabatan: r[4] || '-', Hadir: 0, Sakit: 0, Izin: 0, dates: new Set() };
+            
+            // Mencegah hitungan ganda dalam 1 hari
+            if (!summaryMap[nama].dates.has(tgl)) {
+               summaryMap[nama].dates.add(tgl);
+               if (status === 'Hadir') summaryMap[nama].Hadir++;
+               else if (status === 'Sakit') summaryMap[nama].Sakit++;
+               else if (status === 'Izin') summaryMap[nama].Izin++;
+            }
         }
       });
 
@@ -577,7 +591,9 @@
         let s = summaryMap[nama];
         let totalHadirSakitIzin = s.Hadir + s.Sakit + s.Izin;
         let tanpaKeterangan = totalHariKerja - totalHadirSakitIzin;
-        if (tanpaKeterangan < 0) tanpaKeterangan = 0; // Failsafe pengaman
+        
+        // Failsafe pengaman jika terjadi anomali data
+        if (tanpaKeterangan < 0) tanpaKeterangan = 0; 
         
         dataSummary.push([ nama, s.jabatan, s.Hadir, s.Sakit, s.Izin, tanpaKeterangan ]);
       });
@@ -587,19 +603,19 @@
       // ====================================================
       let workbook = XLSX.utils.book_new(); 
       
-      // Buat Sheet 1 (Taruh di urutan pertama agar langsung terlihat)
+      // Buat Sheet 1 (Rekap)
       let wsSummary = XLSX.utils.aoa_to_sheet(dataSummary);
       wsSummary['!cols'] = [ {wch: 25}, {wch: 20}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 25} ];
       XLSX.utils.book_append_sheet(workbook, wsSummary, "Rekap Akumulasi");
 
-      // Buat Sheet 2
+      // Buat Sheet 2 (Detail)
       let wsDetail = XLSX.utils.aoa_to_sheet(dataDetail);
       wsDetail['!cols'] = [ {wch: 12}, {wch: 25}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 40}, {wch: 50} ];
       XLSX.utils.book_append_sheet(workbook, wsDetail, "Log Detail");
 
       // Download file
       let m = document.getElementById('tglMulai').value; let s = document.getElementById('tglSelesai').value;
-      XLSX.writeFile(workbook, `Rekap_Total_SMPN2_${m}_sd_${s}.xlsx`); bunyi('sukses');
+      XLSX.writeFile(workbook, `Rekap_Presensi_SMPN2_${m}_sd_${s}.xlsx`); bunyi('sukses');
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

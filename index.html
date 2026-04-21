@@ -393,8 +393,8 @@
       const formatWITA = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
       const [jam, menit] = formatWITA.split(':').map(Number);
 
-      if (jenisValue === "Kedatangan" && (jam > 8 || (jam === 8 && menit > 0))) { bunyi('gagal'); return Swal.fire('Terlambat', 'Batas kedatangan adalah 08:00 WITA.', 'error'); }
-      if (jenisValue === "Kepulangan" && jam < 11) { bunyi('gagal'); return Swal.fire('Belum Waktunya', 'Absen pulang minimal pukul 11:00 WITA.', 'error'); }
+      if (jenisValue === "Kedatangan" && (jam > 8 || (jam === 8 && menit > 0))) { bunyi('gagal'); return Swal.fire('Terlambat', 'Waktu Presensi Kedatangan sudah melewati batas.', 'error'); }
+      if (jenisValue === "Kepulangan" && jam < 11) { bunyi('gagal'); return Swal.fire('Belum Waktunya', 'Sedikit lagi, SEMANGAT !!!.', 'error'); }
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mencari GPS...`;
